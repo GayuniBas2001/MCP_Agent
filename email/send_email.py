@@ -16,11 +16,16 @@ from mcp.server import NotificationOptions, Server
 import mcp.server.stdio
 
 
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from mcp.server.fastmcp import FastMCP
+
+# Initialize FastMCP server
+mcp = FastMCP(name="send_email", description="A tool to draft and send emails.")
 
 
 # Configure logging
@@ -157,6 +162,7 @@ class GmailService:
         user_email = profile.get('emailAddress', '')
         return user_email
     
+    @mcp.tool()
     async def send_email(self, recipient_id: str, subject: str, message: str,) -> dict:
         """Creates and sends an email message"""
         try:
@@ -178,6 +184,7 @@ class GmailService:
         except HttpError as error:
             return {"status": "error", "error_message": str(error)}
 
+    @mcp.tool()
     async def open_email(self, email_id: str) -> str:
         """Opens email in browser given ID."""
         try:
@@ -187,30 +194,35 @@ class GmailService:
         except HttpError as error:
             return f"An HttpError occurred: {str(error)}"
 
-    async def get_unread_emails(self) -> list[dict[str, str]]| str:
+    @mcp.tool()
+    async def get_unread_emails(self) -> list[dict[str, str]] | str:
         """
         Retrieves unread messages from mailbox.
-        Returns list of messsage IDs in key 'id'."""
+        Returns list of message IDs in key 'id'."""
         try:
             user_id = 'me'
-            query = 'in:inbox is:unread category:primary'
+            query = 'is:unread'
 
-            response = self.service.users().messages().list(userId=user_id,
-                                                        q=query).execute()
-            messages = []
-            if 'messages' in response:
-                messages.extend(response['messages'])
+            response = self.service.users().messages().list(userId=user_id, q=query).execute()
+            print(f"API Response: {response}")
+            messages = response.get('messages', [])
 
             while 'nextPageToken' in response:
                 page_token = response['nextPageToken']
-                response = self.service.users().messages().list(userId=user_id, q=query,
-                                                    pageToken=page_token).execute()
-                messages.extend(response['messages'])
+                response = self.service.users().messages().list(userId=user_id, q=query, pageToken=page_token).execute()
+                messages.extend(response.get('messages', []))
+
+            if not messages:
+                logger.info("No unread emails found.")
+                return "No unread emails found."
+
             return messages
 
         except HttpError as error:
+            logger.error(f"An HttpError occurred while retrieving unread emails: {str(error)}")
             return f"An HttpError occurred: {str(error)}"
 
+    @mcp.tool()
     async def read_email(self, email_id: str) -> dict[str, str]| str:
         """Retrieves email contents including to, from, subject, and contents."""
         try:
@@ -252,6 +264,7 @@ class GmailService:
         except HttpError as error:
             return f"An HttpError occurred: {str(error)}"
         
+    @mcp.tool()
     async def trash_email(self, email_id: str) -> str:
         """Moves email to trash given ID."""
         try:
@@ -261,6 +274,7 @@ class GmailService:
         except HttpError as error:
             return f"An HttpError occurred: {str(error)}"
         
+    @mcp.tool()
     async def mark_email_as_read(self, email_id: str) -> str:
         """Marks email as read given ID."""
         try:
