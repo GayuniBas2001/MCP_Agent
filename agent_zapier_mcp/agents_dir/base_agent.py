@@ -46,35 +46,6 @@ async def main():
 
     mcp_config = MCPSettings(
         servers={
-            "weather": MCPServerSettings(
-                        command = "uv",
-                        args = [
-                            "--directory",
-                            "D:/Projects/MCP_Claude/MCP_claude/weather",
-                            "run",
-                            "weather.py"
-                        ],
-                        # host = "127.0.0.1",
-                        # port = 8000,
-                        # timeout = 30000
-            ),
-                        # "fetch": MCPServerSettings(
-            #     command="uvx",
-            #     args=["mcp-server-fetch"],
-            # ),
-            "gmail": MCPServerSettings(
-                        command = "C:\\Users\\User\\.local\\bin\\uv.exe",
-                        args = [
-                            "--directory",
-                            "D:/Projects/MCP_Claude/MCP_claude/gmail_mcp",
-                            "run",
-                            "gmail_tools.py",
-                            "--creds-file-path",
-                            "D:/Projects/MCP_Claude/MCP_claude/gmail_mcp/credentials.json",
-                            "--token-path",
-                            "D:/Projects/MCP_Claude/MCP_claude/gmail_mcp/token.json",
-                        ]
-            ),
             "zapier-mcp": MCPServerSettings(
                         command = "npx",
                         args = [
@@ -94,9 +65,7 @@ async def main():
         if you don't have the information you need, you can ask the MCP servers for help.""",
         # tools=[get_current_weather],  # Local and OpenAI tools
         mcp_servers=[
-            "weather", 
-            "gmail",
-            "zapier-mcp" 
+            "zapier-mcp"
         ], 
         mcp_server_registry=None, 
     )
@@ -108,13 +77,26 @@ async def main():
     # user_input="What is the content of the last email I have received?"
     # user_input="Who are the senders of the 3 most recent emails?"
 
+    print("Starting Runner.run_streamed...")
     result = Runner.run_streamed(
         agent,
         input=user_input,
         context=context,
     )
-    async for event in result.stream_events():
-        if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
-            print(event.data.delta, end="", flush=True)
+
+    try:
+        print("Starting to stream events...")
+        async for event in result.stream_events():
+            print("Event received:", event)
+            if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
+                print("/nHeyy", end="", flush=True)
+            elif event.type == "raw_response_event" and hasattr(event.data, "status") and event.data.status == "completed":
+                print("\nResponse completed.")
+                break  # Exit loop when response is complete
+    except asyncio.CancelledError:
+        print("Stream cancelled")
+    except Exception as e:
+        print("Error while streaming events:", e)
+
     
 asyncio.run(main())
