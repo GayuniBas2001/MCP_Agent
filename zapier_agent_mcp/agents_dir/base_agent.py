@@ -1,23 +1,9 @@
-import asyncio
+import asyncio #
 import os
-import shutil
-import subprocess
-import time
-from typing import Any
 
-from agents import Agent, Runner, gen_trace_id, trace
-# from agents.mcp import MCPServerSettings, MCPServerSse
+from agents import Agent, Runner, gen_trace_id, trace 
 from agents.mcp import MCPServer, MCPServerSse
 from agents.model_settings import ModelSettings
-
-# # Define Zapier MCP server settings
-# ZAPIER_MCP = MCPServerSettings(
-#     command="npx",
-#     args=[
-#         "mcp-remote",
-#         "https://actions.zapier.com/mcp/sk-ak-DBmR4BcjJApuOBFQu6SG4kPTjj/sse",
-#     ],
-# )
 
 async def run(mcp_server: MCPServer):
     agent = Agent(
@@ -27,8 +13,11 @@ async def run(mcp_server: MCPServer):
         model_settings=ModelSettings(tool_choice="required"),
     )
 
-    # Use the `add` tool to add two numbers
-    message = "Could you please send an email to gayunibas@gmail.com and tell them that I am running late?. Use available MCP server tools if necessary."
+    # message = "Could you please send an email to gayunibas@gmail.com and tell them that I am running late?. Use available MCP server tools if necessary."
+    message = "Could you please create a new Trello board with Dr.Muj as the title?. Use available MCP server tools if necessary."
+    # message = "Could you please send a direct message to gayunid on slack asking her to come to office?. Use available MCP server tools if necessary."
+    # message = "Could you please create a word document with an intriduction to Kmeans and add it to my google drive?. Use available MCP server tools if necessary."
+
     print(f"Running: {message}")
     result = await Runner.run(starting_agent=agent, input=message)
     print(result.final_output)
